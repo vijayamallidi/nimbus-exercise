@@ -1,0 +1,122 @@
+@configuration.
+we can define a configuration class instead of defining spring xml file.
+To make a class as a Configuration class,we annotate that with @configuration.
+
+In Nimbus Frame work there are using spring and Restful webservices.
+Nimbus Project
+
+Nimbus Architecture
+
+Domain Model - For any application we first have to define the business entity/entities. This would be the first step in the process of building the product.
+here we are creating simple model class for displaying
+
+Lombok is used to reduce boilerplate code for model/data objects, e.g., it can generate getters and setters for those object automatically by using Lombok annotations
+
+
+
+ViewHelloWorld.java
+
+package com.anthem.platform.client.helloworld;
+ 
+import javax.validation.constraints.NotNull;
+ 
+import com.anthem.oss.nimbus.core.domain.definition.Domain;
+import com.anthem.oss.nimbus.core.domain.definition.Domain.ListenerType;
+import com.anthem.oss.nimbus.core.domain.definition.Model;
+import com.anthem.oss.nimbus.core.domain.definition.ViewConfig.Page;
+import com.anthem.oss.nimbus.core.domain.definition.ViewConfig.Section;
+import com.anthem.oss.nimbus.core.domain.definition.ViewConfig.TextBox;
+import com.anthem.oss.nimbus.core.domain.definition.ViewConfig.Tile;
+ 
+import lombok.Getter;
+import lombok.Setter;
+@Domain(value = "helloworld", includeListeners={ListenerType.websocket})
+@Getter @Setter
+public class ViewHelloWorld {
+ 
+@Page(route="", defaultPage=true)
+private Page_HelloWorld helloWorldPage;
+ 
+@Model
+@Getter @Setter
+public static class Page_HelloWorld  {
+ 
+ 
+    @Tile(title="Hello World Sample", size=Tile.Size.Medium)
+    private Card_HelloWorld helloWorldCard;
+ }
+
+
+
+ The Card_HelloWorld defines the inner class.@NotNull it doesn't allows the null values
+ 
+ 
+@Model
+@Getter @Setter
+public static class Card_HelloWorld  {
+ 
+    @Section
+    private Section_HelloWorld helloWorldSec;
+}
+ 
+ 
+@Model
+@Getter @Setter
+public static class Section_HelloWorld {
+ 
+     @TextBox()  private String output;
+     @TextBox(postEventOnChange=true) @NotNull private String type;
+}
+
+
+Create a new Application.java class to start up our spring boot project.
+
+package com.anthem.platform.client.helloworld;
+ 
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+ 
+ 
+ 
+@SpringBootApplication
+ 
+public class Application {
+ 
+    public static void main(String[] args) {
+ 
+        SpringApplication.run(Application.class, args);
+        System.out.println("**** Platform-helloworld ***** Started !!");
+    }
+ 
+ 
+}
+Config - Once we have the domain model, we can define the configuration for the view, workflow and the rules. The view definition configs, the mapping to the domain model, the workflow(if any) and the corresponding view and core domain rules can be written.
+
+Define rules file which contains details on how the state of the form variables are set through web sockets. Create a file helloworld.drl and place under src/main/resources/.
+
+Command - The command is the instruction that the framework understands to execute and come back with an output. It is similar to writing the traditional method calls for button click to do some business logic but just that we have standardized the process of writing such to the domain specific language that the framework understands.
+
+State - The value of every entity and its corresponding attributes is referred to as state by the framework. There could various events for example generated based on the state and certain other things associated with the state. To get the history of changes that happened on an entity attribute, we would need audit to be enabled.
+
+helloworld.drl
+
+package com.anthem.nimbus.platform.client.helloworld;
+ 
+import com.anthem.oss.nimbus.core.domain.model.state.internal.DefaultModelState;
+import com.anthem.oss.nimbus.core.domain.model.state.EntityState.Param;
+import com.anthem.oss.nimbus.core.domain.model.state.internal.DefaultParamState;
+import java.time.LocalDate;
+import java.time.Period;
+ 
+rule "Set State Change"
+no-loop true
+   when
+        $view : Param()
+   then
+        String type = (String) $view.findParamByPath("/helloWorldPage/helloWorldCard/helloWorldSec/type").getState();
+        System.out.println("type is"+type);
+ 
+        $view.findParamByPath("/helloWorldPage/helloWorldCard/helloWorldSec/output").setState("Welcome to Nimbus Hello World! You typed: "+type);
+        String output = (String) $view.findParamByPath("/helloWorldPage/helloWorldCard/helloWorldSec/output").getState();
+        System.out.println("output is "+ output);
+   end
